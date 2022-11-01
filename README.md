@@ -152,6 +152,10 @@ But you can define:
   `RUNBOAT_BUILD_DEFAULT_KUBEFILES_PATH`;
 - a different path for a specific repo,
   by defining the `kubefiles_path` key in `RUNBOAT_REPOS`, e.g.:
+- if you want to pull from private registry:
+
+	- set `REPO_IS_PRIVATE` environment to `true` in runboat deployment
+  - set `RUNBOAT_BUILD_SECRET_ENV` to have `RUNBOAT_GITHUB_TOKEN`
 
 ```
 RUNBOAT_REPOS=[{"repo": "^oca/.*", "branch": "^15.0$", "builds": [{"image": "ghcr.io/oca/oca-ci/py3.8-odoo15.0:latest", "kubefiles_path": "/tmp"}]}]
