@@ -14,7 +14,7 @@ rm -fr $ADDONS_DIR
 mkdir -p $ADDONS_DIR
 cd $ADDONS_DIR
 # Check if repo is private and use token to download
-
+set +x
 if [[ "${REPO_IS_PRIVATE}" == true ]]; then
     echo "Repo is private"
     if [[ -z "${RUNBOAT_GITHUB_TOKEN}" ]]; then
@@ -27,7 +27,7 @@ if [[ "${REPO_IS_PRIVATE}" == true ]]; then
 else
     curl -sSL https://github.com/${RUNBOAT_GIT_REPO}/tarball/${RUNBOAT_GIT_REF} | tar zxf - --strip-components=1
 fi
-
+set -x
 # Install.
 INSTALL_METHOD=${INSTALL_METHOD:-oca_install_addons}
 if [[ "${INSTALL_METHOD}" == "oca_install_addons" ]] ; then
