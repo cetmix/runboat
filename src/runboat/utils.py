@@ -9,8 +9,11 @@ from typing import Any, Callable, ParamSpec, TypeVar
 _pool = ThreadPoolExecutor(max_workers=20, thread_name_prefix="sync_to_async")
 
 
-def slugify(s: str | int) -> str:
-    return re.sub(r"[^a-z0-9]", "-", str(s).lower())
+def slugify(s: str | int, max_length=0) -> str:
+    _slug = re.sub(r"[^a-z0-9]", "-", str(s).lower())
+    if max_length > 0:
+        _slug = _slug[:max_length]
+    return _slug
 
 
 P = ParamSpec("P")
