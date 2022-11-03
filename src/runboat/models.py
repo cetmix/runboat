@@ -120,10 +120,10 @@ class Build(BaseModel):
         cls,
         commit_info: CommitInfo,
     ) -> str:
-        slug = f"{slugify(commit_info.repo)}-{slugify(commit_info.target_branch)}"
+        slug = f"{slugify(commit_info.repo, max_length=20)}-{slugify(commit_info.target_branch, max_length=20)}" # subdomain should not exceed 63 characters
         if commit_info.pr:
-            slug = f"{slug}-pr{slugify(commit_info.pr)}"
-        slug = f"{slug}-{commit_info.git_commit[:12]}"
+            slug = f"{slug}-pr{slugify(commit_info.pr[:7])}"
+        slug = f"{slug}-{commit_info.git_commit[:7]}"
         return slug
 
     @property
