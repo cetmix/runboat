@@ -39,17 +39,19 @@ mypy = [
 Home = "https://github.com/sbidoul/runboat"
 
 [tool.ruff]
-fix = false
+fix = true
+target-version = "py310"
 select = [
-    "E", "F", "U", "N", "S", "C", "B", "A", "I", "T", "Q", "YTT", "BLE", "C", "RUF", "M"
-]
-ignore = [
-    "B008",
-    "BLE001",
-    "N805",
-    "N818",
-    "S101",
-    "U007",
+    "F", # pyflakes
+    "E", # pycodestyle
+    "W", # pycodestyle
+    "C90", # mccabe
+    "I", # isort
+    "UP", # pyupgrade
+    "T10", # flake8-debugger
+    "T20", # flake8-print
+    "PLE", # pylint errors
+    "RUF",
 ]
 
 [tool.ruff.mccabe]
@@ -71,3 +73,6 @@ show_error_codes = true
 [[tool.mypy.overrides]]
 module = ["uvicorn.*", "kubernetes.*", "ansi2html"]
 ignore_missing_imports = true
+
+[tool.pip-deepfreeze.sync]
+extras = "test,mypy"
