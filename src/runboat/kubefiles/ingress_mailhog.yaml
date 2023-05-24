@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   name: mailhog
 spec:
+  ingressClassName: nginx
   rules:
     - http:
         paths:

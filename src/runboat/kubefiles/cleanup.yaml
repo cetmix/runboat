@@ -23,6 +23,8 @@ spec:
             - configMapRef:
                 name: odooenv
           args: ["bash", "/runboat/runboat-cleanup.sh"]
+      nodeSelector:
+        doks.digitalocean.com/node-pool: pool-0o6h4yav8
       volumes:
         - name: runboat-scripts
           configMap:

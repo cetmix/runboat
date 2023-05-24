@@ -89,6 +89,8 @@ spec:
             requests:
               cpu: 50m
               memory: 100Mi
+      nodeSelector:
+        doks.digitalocean.com/node-pool: pool-0o6h4yav8
       volumes:
         - name: runboat-scripts
           configMap:
