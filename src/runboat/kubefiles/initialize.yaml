@@ -30,8 +30,10 @@ spec:
               cpu: 1000m
               memory: 1Gi
             requests:
-              cpu: 1000m
-              memory: 1Gi
+              cpu: 500m
+              memory: 512Mi
+      nodeSelector:
+        doks.digitalocean.com/node-pool: pool-0o6h4yav8
       volumes:
         - name: runboat-scripts
           configMap:

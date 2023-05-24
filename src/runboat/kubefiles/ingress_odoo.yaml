@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   name: odoo
 spec:
+  ingressClassName: nginx
   rules:
     - http:
         paths:
