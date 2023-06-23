@@ -28,10 +28,20 @@ else
     curl -sSL https://github.com/${RUNBOAT_GIT_REPO}/tarball/${RUNBOAT_GIT_REF} | tar zxf - --strip-components=1
 fi
 
+set -x
+
 # Clone Odoo Enterprise addons
 ODOO_EE=runboat.ee
 if test -f "$ODOO_EE"; then
-    curl -sSL https://${RUNBOAT_GITHUB_TOKEN}@github.com/cetmix/enterprise/tarball/${ODOO_VERSION} | tar zxf - --strip-components=1 -C ${ADDONS_PATH}
+    # Clone addons to volume to reuse them later
+    mkdir -p /mnt/data/enterprise
+    curl -sSL https://${RUNBOAT_GITHUB_TOKEN}@github.com/odoo/enterprise/tarball/${ODOO_VERSION} | tar zxf - --strip-components=1 -C /mnt/data/enterprise
+    
+    # Copy addons to the Odoo addons folder for DB init
+    cp -r mkdir -p /mnt/data/enterprise/* ${ADDONS_PATH}
+
+    # List them (just in case)))
+    ls -lah ${ADDONS_PATH}
 fi
 
 # Install additional repos. NB: will be cloned in the same repo as addons. Use with care!
@@ -45,12 +55,12 @@ if test -f "$ADDITIONAL_REPOS"; then
     python3 ./cetmix-python-utils/cetmix_github_cloner.py -t ${RUNBOAT_GITHUB_TOKEN} ../github.json && rm -rf ./cetmix-python-utils
     # Build setup
     find . -type d -maxdepth 2 -exec setuptools-odoo-make-default --addons-dir={} --odoo-version-override=14.0 \;
+    # Copy addons
     find . -mindepth 2 -maxdepth 2 -type d -not -name '.*' -exec cp -rv {} ../ \;
     cd ../ && rm -rf tmp-addons
     ls -lah .
 fi
 
-set -x
 # Install.
 INSTALL_METHOD=${INSTALL_METHOD:-oca_install_addons}
 if [[ "${INSTALL_METHOD}" == "oca_install_addons" ]] ; then
