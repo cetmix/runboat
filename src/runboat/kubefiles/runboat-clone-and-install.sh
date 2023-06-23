@@ -28,7 +28,6 @@ else
     curl -sSL https://github.com/${RUNBOAT_GIT_REPO}/tarball/${RUNBOAT_GIT_REF} | tar zxf - --strip-components=1
 fi
 
-set -x
 
 # Clone Odoo Enterprise addons
 ODOO_EE=runboat.ee
@@ -38,11 +37,13 @@ if test -f "$ODOO_EE"; then
     curl -sSL https://${RUNBOAT_GITHUB_TOKEN}@github.com/odoo/enterprise/tarball/${ODOO_VERSION} | tar zxf - --strip-components=1 -C /mnt/data/enterprise
     
     # Copy addons to the Odoo addons folder for DB init
-    cp -r mkdir -p /mnt/data/enterprise/* ${ADDONS_PATH}
+    cp -r /mnt/data/enterprise/* ${ADDONS_PATH}
 
     # List them (just in case)))
     ls -lah ${ADDONS_PATH}
 fi
+
+set -x
 
 # Install additional repos. NB: will be cloned in the same repo as addons. Use with care!
 ADDITIONAL_REPOS=github.json
