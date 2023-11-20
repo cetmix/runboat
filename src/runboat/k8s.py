@@ -183,7 +183,9 @@ def _get_kubefiles_path(kubefiles_path: Path | None) -> Generator[Path, None, No
     if kubefiles_path:
         yield kubefiles_path
     else:
-        with resources.path(__package__, "kubefiles") as default_kubefiles_path:
+        with resources.as_file(
+            resources.files(__package__).joinpath("kubefiles")
+        ) as default_kubefiles_path:
             yield default_kubefiles_path
 
 
@@ -260,13 +262,13 @@ def kill_job(build_name: str, job_kind: DeploymentMode) -> None:
     batchv1 = client.BatchV1Api()
     batchv1.delete_collection_namespaced_job(
         namespace=settings.build_namespace,
-        label_selector=f"runboat/build={build_name},runboat/job-kind={job_kind}",
+        label_selector=f"runboat/build={build_name},runboat/job-kind={job_kind.value}",
         grace_period_seconds=0,
     )
     corev1 = client.CoreV1Api()
     corev1.delete_collection_namespaced_pod(
         namespace=settings.build_namespace,
-        label_selector=f"runboat/build={build_name},runboat/job-kind={job_kind}",
+        label_selector=f"runboat/build={build_name},runboat/job-kind={job_kind.value}",
         grace_period_seconds=0,
     )
 

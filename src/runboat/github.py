@@ -1,11 +1,14 @@
+import logging
 from enum import Enum
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from .exceptions import NotFoundOnGitHub
 from .settings import settings
+
+_logger = logging.getLogger(__name__)
 
 
 async def _github_request(method: str, url: str, json: Any = None) -> Any:
@@ -29,7 +32,7 @@ class CommitInfo(BaseModel):
     pr: int | None
     git_commit: str
 
-    @validator("repo")
+    @field_validator("repo")
     def validate_repo(cls, v: str) -> str:
         return v.lower()
 
@@ -67,12 +70,18 @@ async def notify_status(
     if settings.disable_commit_statuses:
         return
     # https://docs.github.com/en/rest/reference/repos#create-a-commit-status
-    await _github_request(
-        "POST",
-        f"/repos/{repo}/statuses/{sha}",
-        json={
-            "state": state,
-            "target_url": target_url,
-            "context": "runboat/build",
-        },
-    )
+    try:
+        await _github_request(
+            "POST",
+            f"/repos/{repo}/statuses/{sha}",
+            json={
+                "state": state,
+                "target_url": target_url,
+                "context": "runboat/build",
+            },
+        )
+    except httpx.HTTPStatusError as e:
+        _logger.error(
+            f"Failed to post GitHub commit status (code {e.response.status_code}):\n"
+            f"{e.response.text}"
+        )
