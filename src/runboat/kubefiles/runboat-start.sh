@@ -11,6 +11,17 @@ if [ ! -f /mnt/data/initialized ] ; then
     exit 1
 fi
 
+# Clone Odoo Enterprise addons
+ODOO_EE=/mnt/data/enterprise/
+if [ -d "$ODOO_EE" ]; then
+
+    # Copy addons to the Odoo addons folder for DB init
+    cp -r /mnt/data/enterprise/* ${ADDONS_PATH}
+
+    # List them (just in case)))
+    ls -lah ${ADDONS_PATH}
+fi
+
 # show what is installed (the venv in /opt/odoo-venv has been mounted)
 pip list
 
