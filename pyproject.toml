@@ -11,7 +11,7 @@ classifiers = [
 ]
 dependencies = [
     "ansi2html",
-    "fastapi>=0.93",
+    "fastapi[all]>=0.112",
     "gunicorn",
     "httpx",
     "jinja2",
@@ -22,7 +22,7 @@ dependencies = [
     "sse-starlette",
     "uvicorn",
 ]
-requires-python = "==3.12.*"
+requires-python = "==3.13.*"
 dynamic = ["version", "description"]
 
 [project.optional-dependencies]
@@ -35,7 +35,6 @@ test = [
 ]
 mypy = [
     "mypy>=0.930",
-    "types-urllib3",
 ]
 
 [project.urls]
@@ -58,6 +57,7 @@ select = [
     "T20", # flake8-print
     "PLE", # pylint errors
     "RUF",
+    "FAST", # fastapi
 ]
 
 [tool.ruff.lint.mccabe]
@@ -72,6 +72,7 @@ known-first-party = ["runboat"]
 env_override_existing_values = 1
 env_files = [".env.test"]
 asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "session"
 
 # mypy
 

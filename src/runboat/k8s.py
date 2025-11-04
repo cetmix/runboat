@@ -86,7 +86,7 @@ class WatchException(Exception):
 
 def _watch(
     list_method: Callable[..., Any], *args: Any, **kwargs: Any
-) -> Generator[tuple[str | None, Any], None, None]:
+) -> Generator[tuple[str | None, Any]]:
     while True:
         try:
             # perform a first query
@@ -121,7 +121,7 @@ def _watch(
 
 
 @sync_to_async_iterator
-def watch_deployments() -> Generator[V1Deployment, None, None]:
+def watch_deployments() -> Generator[V1Deployment]:
     appsv1 = client.AppsV1Api()
     yield from _watch(
         appsv1.list_namespaced_deployment, namespace=settings.build_namespace
@@ -129,7 +129,7 @@ def watch_deployments() -> Generator[V1Deployment, None, None]:
 
 
 @sync_to_async_iterator
-def watch_jobs() -> Generator[V1Job, None, None]:
+def watch_jobs() -> Generator[V1Job]:
     batchv1 = client.BatchV1Api()
     yield from _watch(batchv1.list_namespaced_job, namespace=settings.build_namespace)
 
@@ -178,7 +178,7 @@ def make_deployment_vars(
 
 
 @contextmanager
-def _get_kubefiles_path(kubefiles_path: Path | None) -> Generator[Path, None, None]:
+def _get_kubefiles_path(kubefiles_path: Path | None) -> Generator[Path]:
     if kubefiles_path:
         yield kubefiles_path
     else:
@@ -191,7 +191,7 @@ def _get_kubefiles_path(kubefiles_path: Path | None) -> Generator[Path, None, No
 @contextmanager
 def _render_kubefiles(
     kubefiles_path: Path | None, deployment_vars: DeploymentVars
-) -> Generator[Path, None, None]:
+) -> Generator[Path]:
     with (
         _get_kubefiles_path(kubefiles_path) as kubefiles_path,
         tempfile.TemporaryDirectory() as tmp_dir,
@@ -200,10 +200,12 @@ def _render_kubefiles(
         _logger.debug("kubefiles path: %s", kubefiles_path)
         # TODO async copytree, or make this whole _render_kubefiles run_in_executor
         shutil.copytree(kubefiles_path, tmp_path, dirs_exist_ok=True)
-        template = Template((tmp_path / "kustomization.yaml.jinja").read_text())
-        (tmp_path / "kustomization.yaml").write_text(
-            template.render(dict(deployment_vars))
-        )
+        for template_path in tmp_path.rglob("*.jinja"):
+            template = Template(template_path.read_text())
+            template_path.with_suffix("").write_text(
+                template.render(dict(deployment_vars))
+            )
+            template_path.unlink()
         yield tmp_path
 
 
@@ -241,14 +243,13 @@ async def deploy(kubefiles_path: Path | None, deployment_vars: DeploymentVars) -
         )
 
 
-async def delete_resources(build_name: str) -> None:
-    # TODO delete all resources with runboat/build label
+async def delete_deployment_resources(build_name: str) -> None:
     await _kubectl(
         [
             "-n",
             settings.build_namespace,
             "delete",
-            "configmap,deployment,ingress,job,secret,service,pvc",
+            settings.deployment_resource_types,
             "-l",
             f"runboat/build={build_name}",
             "--wait=false",
@@ -299,7 +300,7 @@ def log(build_name: str, job_kind: DeploymentMode | None) -> str | None:
             container=pod.metadata.annotations.get(
                 "kubectl.kubernetes.io/default-container"
             ),
-            tail_lines=None if job_kind else None,
+            tail_lines=None,
             follow=False,
         ),
     )
