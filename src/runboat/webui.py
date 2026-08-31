@@ -1,4 +1,5 @@
 import shutil
+import tempfile
 from importlib import resources
 from pathlib import Path
 
@@ -39,11 +40,16 @@ def mount(app: FastAPI) -> None:
     Files and Jinja templates are rendered and copied to a working
     directory, which is then mounted under the /webui route.
     """
-    webui_path = Path(__file__).parent / "webui"
+    # Render into a temp dir: the image may be non-writable (and with
+    # capabilities dropped, even root cannot override file modes).
+    webui_path = Path(tempfile.mkdtemp(prefix="runboat-webui-"))
     with resources.as_file(
         resources.files(__package__).joinpath("webui-templates")
     ) as webui_template_path:
         for path in webui_template_path.iterdir():
+            # Skip macOS AppleDouble / hidden junk that can land in build contexts.
+            if path.name.startswith("."):
+                continue
             if path.name.endswith(".jinja"):
                 template = jinja2.Template(path.read_text())
                 rendered = template.render(
