@@ -35,6 +35,22 @@ def _make_build(
     )
 
 
+def test_make_slug_with_int_pr() -> None:
+    """PR numbers are ints; slug must not assume a string (no pr[:7])."""
+    commit = CommitInfo(
+        repo="cetmix/cetmix-tower",
+        target_branch="18.0",
+        pr=5574,
+        git_commit="a03c9170123456789abcdef",
+    )
+    slug = Build.make_slug(commit)
+    assert "pr5574" in slug
+    assert slug.endswith("-a03c917")
+    # __str__ uses slug and must not raise
+    build = _make_build(pr=5574)
+    assert "pr5574" in str(build)
+
+
 def test_add() -> None:
     db = BuildsDb()
     listener = MagicMock()

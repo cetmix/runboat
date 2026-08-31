@@ -81,7 +81,11 @@ class Build(BaseModel):
             commit_info=CommitInfo(
                 repo=deployment.metadata.annotations["runboat/repo"],
                 target_branch=deployment.metadata.annotations["runboat/target-branch"],
-                pr=deployment.metadata.annotations.get("runboat/pr") or None,
+                pr=(
+                    int(pr)
+                    if (pr := deployment.metadata.annotations.get("runboat/pr") or None)
+                    else None
+                ),
                 git_commit=deployment.metadata.annotations["runboat/git-commit"],
             ),
             init_status=deployment.metadata.annotations["runboat/init-status"],
@@ -120,9 +124,14 @@ class Build(BaseModel):
         cls,
         commit_info: CommitInfo,
     ) -> str:
-        slug = f"{slugify(commit_info.repo, max_length=20)}-{slugify(commit_info.target_branch, max_length=20)}" # subdomain should not exceed 63 characters
+        # Keep subdomain <= 63 chars (DNS label limit).
+        slug = (
+            f"{slugify(commit_info.repo, max_length=20)}"
+            f"-{slugify(commit_info.target_branch, max_length=20)}"
+        )
         if commit_info.pr:
-            slug = f"{slug}-pr{slugify(commit_info.pr[:7])}"
+            # pr is int | None; do not slice (that assumes a string).
+            slug = f"{slug}-pr{slugify(commit_info.pr)}"
         slug = f"{slug}-{commit_info.git_commit[:7]}"
         return slug
 

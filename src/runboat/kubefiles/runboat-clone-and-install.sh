@@ -62,6 +62,17 @@ if test -f "$ADDITIONAL_REPOS"; then
     ls -lah .
 fi
 
+# Authenticate git HTTPS to GitHub before pip/oca_install_addons clones
+# dependencies from test-requirements.txt. Private repos need this; public
+# ones can also fail with "could not read Username for 'https://github.com'"
+# when GitHub challenges anonymous clones (rate limits / flaky auth).
+# URLs that already embed ${RUNBOAT_GITHUB_TOKEN}@ are left unchanged.
+if [[ -n "${RUNBOAT_GITHUB_TOKEN:-}" ]]; then
+    set +x
+    git config --global url."https://x-access-token:${RUNBOAT_GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+    set -x
+fi
+
 # Install.
 INSTALL_METHOD=${INSTALL_METHOD:-oca_install_addons}
 if [[ "${INSTALL_METHOD}" == "oca_install_addons" ]] ; then
