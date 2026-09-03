@@ -246,4 +246,4 @@ def test_oldest_stopped() -> None:
             created=datetime.datetime(2021, 10, 11, 12, 0, 4),
         )
     )
-    assert [b.name for b in db.oldest_stopped(limit=3)] == ["b1", "pr1"]
+    assert [b.name for b in db.oldest_stopped(limit=3)] == ["b1"]

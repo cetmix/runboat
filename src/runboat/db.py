@@ -203,8 +203,9 @@ class BuildsDb:
     def oldest_stopped(self, limit: int) -> list[Build]:
         """Return a list of oldest stopped builds.
 
-        Exclude the most recent build of each branch that we want to
-        preserve from eviction.
+        Exclude the most recent build of each branch or pull request so
+        capacity eviction never removes the only remaining build for that
+        lineage (newer commits already replace older ones on deploy).
         """
         rows = self._con.execute(
             """\
@@ -217,7 +218,7 @@ class BuildsDb:
                         *
                     FROM builds
                 )
-                WHERE status IN (?, ?, ?) AND (rownum != 1 OR pr IS NOT NULL)
+                WHERE status IN (?, ?, ?) AND rownum != 1
                 ORDER BY last_scaled
                 LIMIT ?
             """,

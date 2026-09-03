@@ -11,6 +11,9 @@ addons. The addons come from commits on branches and pull requests in GitHub
 repositories. A deployment of a given commit of a given branch or pull request of a
 given repository is known as a build.
 
+See [Build retention and opt-out](#build-retention-and-opt-out) for how many builds are
+kept per branch/PR and how to disable builds for a commit.
+
 Runboat has the following main components:
 
 - An in-memory database of deployed builds, with their current status.
@@ -29,7 +32,8 @@ Runboat has the following main components:
     environment, so everything is ready for an almost instantaneous startup;
   - when the initialization job fails, flag the deployment as failed;
   - when there are too many deployments started, stop the oldest started;
-  - when there are too many deployments, delete the oldest created;
+  - when there are too many deployments, undeploy the oldest stopped/failed builds
+    while preserving the latest build of each branch and of each pull request;
   - when a deployment is deleted, run a cleanup job to drop the database and delete
     all kubernetes resources associated with the deployment.
 
@@ -99,6 +103,36 @@ database and the kubernetes cluster:
 
 Note that you can deploy Runboat itself as well Postgres outside or inside the
 kubernetes cluster, or even a different one, depending on your taste.
+
+## Build retention and opt-out
+
+These rules are always on (not configurable via environment variables). They apply to
+every deploy path: GitHub webhooks (`push`, `pull_request` opened/synchronize) and the
+admin API (`POST /api/v1/builds/trigger/branch`, `POST /api/v1/builds/trigger/pr`).
+
+### One build per branch or pull request
+
+When a **new** build is successfully scheduled for a commit:
+
+- for a **branch** build (`pr` is absent): all other deployed builds for the same
+  `repo` + branch name are undeployed;
+- for a **pull request** build: all other deployed builds for the same `repo` + PR
+  number are undeployed.
+
+If a build for that exact commit already exists, nothing is deployed or undeployed.
+
+Separately, when the cluster is over `RUNBOAT_MAX_DEPLOYED`, the undeployer removes the
+oldest stopped/failed builds but never the newest build of each branch or PR lineage
+(partitioned by `repo`, `target_branch`, and `pr`).
+
+### Opt out with `norunboat`
+
+If the commit being considered has a file named `norunboat` at the **repository root**
+(checked via the GitHub Contents API for that commit SHA), Runboat does **not** create a
+build. Existing builds for that branch/PR are left untouched.
+
+To re-enable builds, remove `norunboat` from the root and push (or open/synchronize a
+PR) so a new commit without the file is deployed.
 
 ## Kubernetes resources
 
@@ -196,6 +230,10 @@ we switch to using an async kubernetes client (tracked in
 See environment variables examples in [Dockerfile](./Dockerfile),
 [.env.sample](./.env.sample) and their documentation in
 [settings.py](./src/runboat/settings.py).
+
+Build retention (one build per branch/PR) and the `norunboat` opt-out are controller
+behavior documented in [Build retention and opt-out](#build-retention-and-opt-out);
+they are not `RUNBOAT_*` settings.
 
 ## Credits
 

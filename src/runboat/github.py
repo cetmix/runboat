@@ -57,6 +57,22 @@ async def get_pull_info(repo: str, pr: int) -> CommitInfo:
     )
 
 
+async def has_norunboat(repo: str, git_commit: str) -> bool:
+    """Return True if the repo root contains a ``norunboat`` file at ``git_commit``.
+
+    Used by ``Controller.deploy_commit`` to skip creating builds. The check is a
+    GitHub Contents API GET on ``/repos/{repo}/contents/norunboat?ref={git_commit}``.
+    A missing file (404) means builds are allowed; any other HTTP error is raised.
+    """
+    try:
+        await _github_request(
+            "GET", f"/repos/{repo}/contents/norunboat?ref={git_commit}"
+        )
+    except NotFoundOnGitHub:
+        return False
+    return True
+
+
 class GitHubStatusState(str, Enum):
     error = "error"
     failure = "failure"

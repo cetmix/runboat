@@ -5,7 +5,7 @@ from typing import Any
 
 from . import k8s
 from .db import BuildsDb
-from .github import CommitInfo
+from .github import CommitInfo, has_norunboat
 from .models import Build, BuildEvent, BuildInitStatus, BuildStatus
 from .settings import settings
 
@@ -38,7 +38,14 @@ class Controller:
     - The 'cleaner' starts cleanup jobs for deployment that have been marked for
       deletion.
     - The 'stopper' stops old running deployments.
-    - The 'undeployer' undeploys old stopped deployments.
+    - The 'undeployer' undeploys old stopped deployments (preserving the newest build
+      of each branch and pull request).
+
+    Deploy entry point ``deploy_commit`` (webhooks and admin triggers):
+
+    - skips when the commit has a root-level ``norunboat`` file;
+    - no-ops when that exact commit is already deployed;
+    - otherwise deploys and undeploys previous builds for the same branch or PR.
     """
 
     def __init__(self) -> None:
@@ -97,7 +104,19 @@ class Controller:
         return self.db.count_by_status(BuildStatus.undeploying)
 
     async def deploy_commit(self, commit_info: CommitInfo) -> None:
-        """Deploy build for a commit, or do nothing if build already exist."""
+        """Deploy build for a commit, or do nothing if build already exist.
+
+        Skips deployment when the commit has a ``norunboat`` file at the repo root.
+        After deploying a new build, undeploys previous builds for the same branch
+        (push) or the same pull request.
+        """
+        if await has_norunboat(commit_info.repo, commit_info.git_commit):
+            _logger.info(
+                "Skipping deploy for %s@%s: norunboat present at repo root.",
+                commit_info.repo,
+                commit_info.git_commit[:7],
+            )
+            return
         build = self.db.get_for_commit(
             repo=commit_info.repo,
             target_branch=commit_info.target_branch,
@@ -106,6 +125,25 @@ class Controller:
         )
         if build is None:
             await Build.deploy(commit_info)
+            await self._undeploy_previous_builds(commit_info)
+
+    async def _undeploy_previous_builds(self, commit_info: CommitInfo) -> None:
+        """Undeploy older builds for the same branch or pull request."""
+        if commit_info.pr is not None:
+            previous = self.db.search(repo=commit_info.repo, pr=commit_info.pr)
+        else:
+            previous = self.db.search(
+                repo=commit_info.repo, branch=commit_info.target_branch
+            )
+        for build in previous:
+            if build.commit_info.git_commit == commit_info.git_commit:
+                continue
+            _logger.info(
+                "Undeploying previous build %s for %s.",
+                build.name,
+                commit_info,
+            )
+            await build.undeploy()
 
     async def undeploy_builds(
         self,

@@ -52,7 +52,13 @@ class Settings(BaseSettings):
     max_initializing: int = 2
     # The maximum number of builds that are started.
     max_started: int = 6
-    # The maximum number of builds that are deployed.
+    # The maximum number of builds that are deployed (capacity eviction).
+    # When over this limit, oldest stopped/failed builds are undeployed, but the
+    # newest build of each (repo, target_branch, pr) lineage is preserved.
+    # Related always-on controller rules (not settings): deploying a new commit for a
+    # branch or PR undeploys previous builds for that lineage; commits with a
+    # ``norunboat`` file at the repository root are never deployed. See README
+    # "Build retention and opt-out".
     max_deployed: int = 10
     # The kubernetes namespace where the builds are deployed.
     build_namespace: str
